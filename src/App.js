@@ -13,8 +13,11 @@ function App() {
   const [strategy, setStrategy] = useState('red');
   const [gameHistory, setGameHistory] = useState([]);
   const [consecutiveLosses, setConsecutiveLosses] = useState(0);
+  const [consecutiveWins, setConsecutiveWins] = useState(0);
   const [totalProfit, setTotalProfit] = useState(0);
   const [riskLevel, setRiskLevel] = useState('low');
+  const [isProgressiveBetting, setIsProgressiveBetting] = useState(true);
+  const [baseBet, setBaseBet] = useState(0);
 
   // Calculate maximum consecutive losses before bankruptcy
   const calculateMaxLosses = (money, bet) => {
@@ -61,10 +64,12 @@ function App() {
 
     setCurrentMoney(money);
     setCurrentBet(bet);
+    setBaseBet(bet); // Store the original bet amount
     setGameStarted(true);
     setRound(1);
     setGameHistory([]);
     setConsecutiveLosses(0);
+    setConsecutiveWins(0);
     setTotalProfit(0);
     
     // Set initial strategy
@@ -94,16 +99,82 @@ function App() {
     setRiskLevel('low');
   };
 
+  // Fibonacci sequence for progressive betting
+  const getFibonacci = (n) => {
+    const fib = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55];
+    return fib[Math.min(n - 1, fib.length - 1)] || 1;
+  };
+
+  // Smart Progressive betting with balanced options
+  const calculateNextBetAmount = (isWin, currentWinStreak, currentBetAmount, baseBetAmount, currentLossStreak = 0) => {
+    if (!isProgressiveBetting) {
+      // Standard Martingale
+      return isWin ? baseBetAmount : currentBetAmount * 2;
+    }
+
+    if (isWin) {
+      // Progressive betting during winning streaks with balanced progression
+      const newWinStreak = currentWinStreak + 1;
+      
+      // Create more balanced betting options
+      const random = Math.random();
+      
+      if (newWinStreak === 1) {
+        // First win: modest increase
+        return random > 0.4 ? baseBetAmount * 2 : baseBetAmount;
+      } else if (newWinStreak === 2) {
+        // Second win: choose between 1x, 2x, or 3x
+        if (random > 0.7) return baseBetAmount * 3;
+        if (random > 0.3) return baseBetAmount * 2;
+        return baseBetAmount;
+      } else if (newWinStreak === 3) {
+        // Third win: choose between 1x, 2x, 3x, or 4x
+        if (random > 0.8) return baseBetAmount * 4;
+        if (random > 0.6) return baseBetAmount * 3;
+        if (random > 0.3) return baseBetAmount * 2;
+        return baseBetAmount;
+      } else if (newWinStreak <= 6) {
+        // Mid-streak: choose between 1x, 2x, 3x, 4x, or 5x
+        if (random > 0.85) return baseBetAmount * 5;
+        if (random > 0.7) return baseBetAmount * 4;
+        if (random > 0.5) return baseBetAmount * 3;
+        if (random > 0.25) return baseBetAmount * 2;
+        return baseBetAmount;
+      } else {
+        // Long streak: more conservative, choose between 1x, 2x, 3x, or 6x
+        if (random > 0.9) return baseBetAmount * 6; // rare big bet
+        if (random > 0.7) return baseBetAmount * 3;
+        if (random > 0.4) return baseBetAmount * 2;
+        return baseBetAmount; // often secure profits
+      }
+    } else {
+      // Loss: Check if we're coming from a winning streak
+      if (currentWinStreak > 0) {
+        // Coming from winning streak - reset to base bet for safety
+        return baseBetAmount;
+      } else {
+        // Already in losing streak - double the bet (Martingale)
+        return currentBetAmount * 2;
+      }
+    }
+  };
+
   const recordResult = (won, customBetAmount = null) => {
     const newHistory = [...gameHistory];
     const betAmount = customBetAmount || currentBet;
     
     if (won) {
       const winAmount = betAmount;
+      const newWinStreak = consecutiveWins + 1;
+      
       setCurrentMoney(currentMoney + winAmount);
       setTotalProfit(totalProfit + winAmount);
       setConsecutiveLosses(0);
-      setCurrentBet(parseFloat(initialBet)); // Reset to initial bet
+      setConsecutiveWins(newWinStreak);
+      
+      // Calculate next bet using smart progression
+      const nextBet = calculateNextBetAmount(true, consecutiveWins, currentBet, baseBet, consecutiveLosses);
+      setCurrentBet(nextBet);
       
       newHistory.push({
         round,
@@ -115,13 +186,20 @@ function App() {
         previousBet: currentBet,
         previousMoney: currentMoney,
         previousProfit: totalProfit,
-        previousLosses: consecutiveLosses
+        previousLosses: consecutiveLosses,
+        previousWins: consecutiveWins,
+        winStreak: newWinStreak,
+        nextBet: nextBet
       });
     } else {
       setCurrentMoney(currentMoney - betAmount);
       setTotalProfit(totalProfit - betAmount);
       setConsecutiveLosses(consecutiveLosses + 1);
-      setCurrentBet(currentBet * 2); // Double the bet (Martingale)
+      setConsecutiveWins(0); // Reset win streak
+      
+      // Calculate next bet using smart progression for losses too
+      const nextBet = calculateNextBetAmount(false, consecutiveWins, currentBet, baseBet, consecutiveLosses);
+      setCurrentBet(nextBet);
       
       newHistory.push({
         round,
@@ -133,7 +211,10 @@ function App() {
         previousBet: currentBet,
         previousMoney: currentMoney,
         previousProfit: totalProfit,
-        previousLosses: consecutiveLosses
+        previousLosses: consecutiveLosses,
+        previousWins: consecutiveWins,
+        winStreak: 0,
+        nextBet: nextBet
       });
     }
 
@@ -177,6 +258,7 @@ function App() {
     setCurrentMoney(lastRound.previousMoney);
     setTotalProfit(lastRound.previousProfit);
     setConsecutiveLosses(lastRound.previousLosses);
+    setConsecutiveWins(lastRound.previousWins || 0);
     setCurrentBet(lastRound.previousBet);
     setRound(round - 1);
     
@@ -239,16 +321,63 @@ function App() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={includeGreen}
-                  onChange={(e) => setIncludeGreen(e.target.checked)}
-                />
-                <span className="checkmark"></span>
-                Include Green (0/00) in Strategy
-              </label>
+            <div className="bet-suggestions bet-suggestions-full-width">
+              {bankroll ? (
+                <>
+                  <p className="suggestions-label">💡 Suggested bets:</p>
+                  <div className="suggestion-buttons">
+                    <button 
+                      className="suggestion-btn low-risk"
+                      onClick={() => setInitialBet((parseFloat(bankroll) * 0.01).toFixed(2))}
+                      title="1% of bankroll - Very safe, many rounds possible"
+                    >
+                      Low Risk: ${(parseFloat(bankroll) * 0.01).toFixed(2)}
+                    </button>
+                    <button 
+                      className="suggestion-btn normal-risk"
+                      onClick={() => setInitialBet((parseFloat(bankroll) * 0.025).toFixed(2))}
+                      title="2.5% of bankroll - Balanced risk/reward"
+                    >
+                      Normal: ${(parseFloat(bankroll) * 0.025).toFixed(2)}
+                    </button>
+                    <button 
+                      className="suggestion-btn high-risk"
+                      onClick={() => setInitialBet((parseFloat(bankroll) * 0.05).toFixed(2))}
+                      title="5% of bankroll - Higher risk, fewer safe rounds"
+                    >
+                      Extreme: ${(parseFloat(bankroll) * 0.05).toFixed(2)}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="suggestions-placeholder">Enter your bankroll to see suggested bet amounts</p>
+              )}
+            </div>
+
+            <div className="grid grid-2">
+              <div className="form-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={includeGreen}
+                    onChange={(e) => setIncludeGreen(e.target.checked)}
+                  />
+                  <span className="checkmark"></span>
+                  Include Green <span className="green-numbers">(0/00)</span>
+                </label>
+              </div>
+              
+              <div className="form-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={isProgressiveBetting}
+                    onChange={(e) => setIsProgressiveBetting(e.target.checked)}
+                  />
+                  <span className="checkmark"></span>
+                  Smart Progressive Betting
+                </label>
+              </div>
             </div>
 
             <button 
@@ -261,7 +390,7 @@ function App() {
         ) : (
           <div className="game-interface">
             {/* Game Stats */}
-            <div className="grid grid-3 mb-4">
+            <div className="grid grid-5 mb-4">
               <div className="stat-card">
                 <h3>Current Balance</h3>
                 <p className={`stat-value ${currentMoney < parseFloat(bankroll) ? 'text-danger' : 'text-success'}`}>
@@ -274,6 +403,34 @@ function App() {
                 <p className={`stat-value ${totalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
                   ${totalProfit.toFixed(2)}
                 </p>
+                <p className="profit-percentage">
+                  {((totalProfit / parseFloat(bankroll)) * 100).toFixed(1)}%
+                </p>
+              </div>
+              
+              <div className="stat-card">
+                <h3>Win Streak {consecutiveWins > 0 ? '🔥' : ''}</h3>
+                <p className={`stat-value ${consecutiveWins > 0 ? 'text-success' : 'text-warning'}`}>
+                  {consecutiveWins}
+                </p>
+              </div>
+              
+              <div className="stat-card">
+                <h3>Win/Loss Ratio</h3>
+                {gameHistory.length > 0 ? (
+                  <div>
+                    <p className={`stat-value ${
+                      (gameHistory.filter(g => g.result === 'win').length / gameHistory.length) >= 0.5 ? 'text-success' : 'text-danger'
+                    }`}>
+                      {Math.round((gameHistory.filter(g => g.result === 'win').length / gameHistory.length) * 100)}%
+                    </p>
+                    <p className="ratio-details">
+                      {gameHistory.filter(g => g.result === 'win').length}W / {gameHistory.filter(g => g.result === 'loss').length}L
+                    </p>
+                  </div>
+                ) : (
+                  <p className="stat-value text-warning">--</p>
+                )}
               </div>
               
               <div className="stat-card">
@@ -297,11 +454,6 @@ function App() {
                   <p className="bet-amount">Bet: ${currentBet.toFixed(2)}</p>
                 </div>
 
-                {/* Option 1: Very Minimal - Just text */}
-                <div className="risk-minimal-1" style={{display: 'none'}}>
-                  <p>Rounds left: <strong className="rounds-number">{maxPossibleLosses}</strong></p>
-                </div>
-
                 {/* Option 2: Simple card with icon */}
                 <div className="risk-minimal-2">
                   <AlertTriangle size={20} />
@@ -310,19 +462,36 @@ function App() {
                     maxPossibleLosses >= 4 ? 'warning' : 'danger'
                   }`}>{maxPossibleLosses}</strong> more losses</span>
                 </div>
+              </div>
 
-                {/* Option 3: Clean badge style */}
-                <div className="risk-minimal-3" style={{display: 'none'}}>
-                  <div className="rounds-badge">
-                    {maxPossibleLosses} rounds left
+              {/* Full-width betting strategy info */}
+              <div className="betting-strategy-container">
+                {isProgressiveBetting && (
+                  <div className="betting-strategy-info">
+                    <p className="strategy-mode">📈 Progressive Mode</p>
+                    {consecutiveWins > 0 && (
+                      <div>
+                        <p className="win-streak-bonus">
+                          🔥 Win streak: {consecutiveWins} | Next bet: Smart progression
+                        </p>
+                        <p className="cycle-info">
+                          {consecutiveWins <= 1 && "🎯 Modest increase options (1x-2x)"}
+                          {consecutiveWins === 2 && "⚖️ Balanced choices (1x-3x)"}
+                          {consecutiveWins === 3 && "🎰 More options (1x-4x)"}
+                          {consecutiveWins > 3 && consecutiveWins <= 6 && "💫 Peak opportunities (1x-5x)"}
+                          {consecutiveWins > 6 && "💰 Conservative with rare big bets (1x-6x)"}
+                        </p>
+                      </div>
+                    )}
+                    <p className="base-bet-info">Base bet: ${baseBet.toFixed(2)}</p>
                   </div>
-                </div>
-
-                {/* Option 4: Inline with bet amount */}
-                <div className="risk-minimal-4" style={{display: 'none'}}>
-                  <p className="bet-amount">Bet: ${currentBet.toFixed(2)}</p>
-                  <p className="rounds-info">({maxPossibleLosses} safe rounds)</p>
-                </div>
+                )}
+                {!isProgressiveBetting && (
+                  <div className="betting-strategy-info">
+                    <p className="strategy-mode">🔄 Classic Martingale</p>
+                    <p className="base-bet-info">Base bet: ${baseBet.toFixed(2)}</p>
+                  </div>
+                )}
               </div>
 
               {currentMoney >= currentBet ? (

@@ -60,6 +60,100 @@
   transform: scale(1.2);
 }
 
+.green-numbers {
+  color: #00b894;
+  font-weight: 700;
+  background: rgba(0, 184, 148, 0.1);
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.9em;
+  margin-left: 4px;
+  border: 1px solid rgba(0, 184, 148, 0.2);
+}
+
+.bet-suggestions {
+  margin-top: 15px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bet-suggestions-full-width {
+  width: 100%;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.suggestions-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.suggestions-placeholder {
+  font-size: 0.9rem;
+  color: #999;
+  margin: 10px 0;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.suggestion-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.suggestion-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+}
+
+.suggestion-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.low-risk {
+  background: linear-gradient(45deg, #00b894, #00a085);
+  color: white;
+}
+
+.low-risk:hover {
+  background: linear-gradient(45deg, #00a085, #009075);
+}
+
+.normal-risk {
+  background: linear-gradient(45deg, #fdcb6e, #e17055);
+  color: white;
+}
+
+.normal-risk:hover {
+  background: linear-gradient(45deg, #e17055, #d63031);
+}
+
+.high-risk {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+  color: white;
+}
+
+.high-risk:hover {
+  background: linear-gradient(45deg, #ee5a24, #d63031);
+}
+
 .stat-card {
   background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
@@ -208,12 +302,15 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 10px;
-  margin: 20px 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  border-left: 4px solid #ffc107;
+  margin: 0;
   color: #666;
   font-size: 1.1rem;
+  min-height: 80px;
+  text-align: center;
 }
 
 .rounds-number-colored {
@@ -262,6 +359,78 @@
   color: #666;
   margin: 5px 0 0 0;
   font-style: italic;
+}
+
+.grid-4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.grid-5 {
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+}
+
+.streak-info {
+  font-size: 0.8rem;
+  color: #ff6b6b;
+  margin: 5px 0 0 0;
+  font-weight: 600;
+}
+
+.ratio-details {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 5px 0 0 0;
+  font-weight: 600;
+}
+
+.profit-percentage {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 5px 0 0 0;
+  font-weight: 600;
+}
+
+.betting-strategy-container {
+  width: 100%;
+  margin: 20px 0;
+  min-height: 120px; /* Fixed height to prevent jumping */
+}
+
+.betting-strategy-info {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+  text-align: center;
+  width: 100%;
+}
+
+.strategy-mode {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 5px 0;
+}
+
+.win-streak-bonus {
+  font-size: 0.8rem;
+  color: #00b894;
+  margin: 5px 0;
+  font-style: italic;
+}
+
+.base-bet-info {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 5px 0 0 0;
+}
+
+.cycle-info {
+  font-size: 0.75rem;
+  color: #764ba2;
+  margin: 5px 0;
+  font-style: italic;
+  font-weight: 600;
 }
 
 @keyframes pulse-danger {
@@ -493,6 +662,11 @@
     height: 100px;
     font-size: 1.2rem;
   }
+
+  .grid-4,
+  .grid-5 {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 480px) {
@@ -517,6 +691,11 @@
   .history-header span:nth-child(n+3),
   .history-row span:nth-child(n+3) {
     display: none;
+  }
+
+  .grid-4,
+  .grid-5 {
+    grid-template-columns: 1fr;
   }
 }
 
