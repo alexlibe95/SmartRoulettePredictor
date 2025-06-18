@@ -150,8 +150,15 @@ function App() {
     } else {
       // Loss: Check if we're coming from a winning streak
       if (currentWinStreak > 0) {
-        // Coming from winning streak - reset to base bet for safety
-        return baseBetAmount;
+        // Coming from winning streak - step down gradually instead of full reset
+        const currentMultiplier = currentBetAmount / baseBetAmount;
+        if (currentMultiplier >= 4) {
+          return baseBetAmount * 2; // From 4x+ down to 2x
+        } else if (currentMultiplier >= 2) {
+          return baseBetAmount * 1.5; // From 2x-3x down to 1.5x
+        } else {
+          return baseBetAmount; // From 1x-1.5x down to base
+        }
       } else {
         // Already in losing streak - double the bet (Martingale)
         return currentBetAmount * 2;
@@ -270,7 +277,7 @@ function App() {
     setStrategy(lastRound.strategy);
   };
 
-  const maxPossibleLosses = gameStarted ? calculateMaxLosses(currentMoney, currentBet) : 0;
+  const maxPossibleLosses = gameStarted ? calculateMaxLosses(currentMoney, baseBet) : 0;
 
   return (
     <div className="App">
